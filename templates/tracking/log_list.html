@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Data Log Defect{% endblock %}
+
+{% block content %}
+<div class="card stat-card p-4 bg-white">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">Logbook Riwayat Cacat & Scrap</h4>
+            <span class="text-muted small">Data telusur lengkap untuk audit kualitas dan analisis PowerBI</span>
+        </div>
+        <a href="{% url 'tracking:log_create' %}" class="btn btn-primary btn-sm px-3 fw-semibold">
+            <i class="bi bi-plus-circle me-1"></i> Catat Baru
+        </a>
+    </div>
+
+    <!-- Filter Form -->
+    <form method="get" class="row g-2 mb-4 p-3 bg-light rounded border align-items-end">
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold text-muted mb-1">Lini Produksi</label>
+            <select name="line" class="form-select form-select-sm">
+                <option value="">Semua Lini</option>
+                {% for l in lines %}
+                    <option value="{{ l.code }}" {% if selected_line == l.code %}selected{% endif %}>{{ l.code }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold text-muted mb-1">Shift</label>
+            <select name="shift" class="form-select form-select-sm">
+                <option value="">Semua Shift</option>
+                <option value="1" {% if selected_shift == '1' %}selected{% endif %}>Shift 1</option>
+                <option value="2" {% if selected_shift == '2' %}selected{% endif %}>Shift 2</option>
+                <option value="3" {% if selected_shift == '3' %}selected{% endif %}>Shift 3</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-semibold text-muted mb-1">Tindakan</label>
+            <select name="action" class="form-select form-select-sm">
+                <option value="">Semua Tindakan</option>
+                <option value="SCRAP" {% if selected_action == 'SCRAP' %}selected{% endif %}>Scrap</option>
+                <option value="REWORK" {% if selected_action == 'REWORK' %}selected{% endif %}>Rework</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm w-100 fw-semibold">
+                <i class="bi bi-funnel me-1"></i> Filter
+            </button>
+            <a href="{% url 'tracking:log_list' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+        </div>
+    </form>
+
+    <!-- Table -->
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+                <tr>
+                    <th># ID</th>
+                    <th>Waktu / Shift</th>
+                    <th>Lini</th>
+                    <th>Part Harness</th>
+                    <th>Kategori Cacat</th>
+                    <th class="text-center">Qty</th>
+                    <th>Disposisi</th>
+                    <th>Inspektor</th>
+                    <th>Keterangan</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td class="text-muted">#{{ log.id }}</td>
+                    <td>
+                        <div>{{ log.logged_at|date:"d/m/Y H:i" }}</div>
+                        <span class="badge bg-light text-secondary border">Shift {{ log.shift }}</span>
+                    </td>
+                    <td><strong>{{ log.line.code }}</strong></td>
+                    <td>
+                        <code>{{ log.harness_part.part_number }}</code>
+                        <div class="text-muted" style="font-size: 0.75rem;">{{ log.harness_part.car_model }}</div>
+                    </td>
+                    <td>
+                        <strong>{{ log.defect_category.name }}</strong>
+                        <div class="text-muted" style="font-size: 0.75rem;">[{{ log.defect_category.code }}]</div>
+                    </td>
+                    <td class="text-center fw-bold fs-6">{{ log.quantity }}</td>
+                    <td>
+                        {% if log.action_taken == 'SCRAP' %}
+                            <span class="badge badge-scrap px-2 py-1"><i class="bi bi-x-octagon me-1"></i>Scrap</span>
+                        {% else %}
+                            <span class="badge badge-rework px-2 py-1"><i class="bi bi-arrow-repeat me-1"></i>Rework</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ log.inspector_name }}</td>
+                    <td>
+                        {% if log.notes %}
+                            <span class="text-muted">{{ log.notes }}</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">Tidak ada data ditemukan sesuai filter.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

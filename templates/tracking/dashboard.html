@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Kualitas - Real Time Scrap{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h3 class="fw-bold mb-1 text-dark">Real-Time Scrap & Defect Dashboard</h3>
+        <p class="text-muted mb-0 small">Monitoring mutu shopfloor dan pemantauan reject rate wiring harness PT. SAI</p>
+    </div>
+    
+    <!-- Filter Bar -->
+    <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+        <select name="days" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+            <option value="1" {% if days_filter == 1 %}selected{% endif %}>Hari Ini (24 Jam)</option>
+            <option value="7" {% if days_filter == 7 %}selected{% endif %}>7 Hari Terakhir</option>
+            <option value="30" {% if days_filter == 30 %}selected{% endif %}>30 Hari Terakhir</option>
+        </select>
+
+        <select name="line" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+            <option value="">Semua Lini Produksi</option>
+            {% for l in lines %}
+                <option value="{{ l.code }}" {% if selected_line == l.code %}selected{% endif %}>{{ l.code }}</option>
+            {% endfor %}
+        </select>
+
+        <select name="shift" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+            <option value="">Semua Shift</option>
+            <option value="1" {% if selected_shift == '1' %}selected{% endif %}>Shift 1</option>
+            <option value="2" {% if selected_shift == '2' %}selected{% endif %}>Shift 2</option>
+            <option value="3" {% if selected_shift == '3' %}selected{% endif %}>Shift 3</option>
+        </select>
+
+        {% if selected_line or selected_shift or days_filter != 7 %}
+            <a href="{% url 'tracking:dashboard' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <!-- Highlight: Total Scrap Hari Ini -->
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card p-3 border-start border-4 border-danger bg-white h-100 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-danger small fw-bold">TOTAL SCRAP HARI INI</span>
+                <i class="bi bi-trash3-fill text-danger fs-4"></i>
+            </div>
+            <div class="fs-2 fw-bold text-danger">{{ today_scrap|default:0 }} <small class="fs-6 fw-normal text-muted">pcs</small></div>
+            <span class="text-muted small">Kerugian material hari ini (Disposisi Scrap)</span>
+        </div>
+    </div>
+
+    <!-- Total Defect Logged (Filter) -->
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card p-3 border-start border-4 border-primary bg-white h-100 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted small fw-semibold">TOTAL DEFECT LOGGED</span>
+                <i class="bi bi-exclamation-diamond text-primary fs-4"></i>
+            </div>
+            <div class="fs-2 fw-bold text-dark">{{ totals.total_items|default:0 }} <small class="fs-6 fw-normal text-muted">pcs</small></div>
+            <span class="text-muted small">{{ totals.total_logs|default:0 }} insiden tercatat ({{ days_filter }} hari)</span>
+        </div>
+    </div>
+
+    <!-- Total Rework -->
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card p-3 border-start border-4 border-warning bg-white h-100 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted small fw-semibold">TOTAL REWORK (PERBAIKAN)</span>
+                <i class="bi bi-tools text-warning fs-4"></i>
+            </div>
+            <div class="fs-2 fw-bold text-dark">{{ totals.total_rework|default:0 }} <small class="fs-6 fw-normal text-muted">pcs</small></div>
+            <span class="text-muted small">Dapat di-recrimp / solder ulang</span>
+        </div>
+    </div>
+
+    <!-- Total Critical -->
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card p-3 border-start border-4 border-dark bg-white h-100 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted small fw-semibold">CRITICAL SEVERITY</span>
+                <i class="bi bi-shield-fill-x text-danger fs-4"></i>
+            </div>
+            <div class="fs-2 fw-bold text-danger">{{ totals.total_critical|default:0 }} <small class="fs-6 fw-normal text-muted">pcs</small></div>
+            <span class="text-muted small">Risiko open / short circuit harness</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Top 5 Defect Pareto (annotate Sum & Count) -->
+    <div class="col-lg-6">
+        <div class="card stat-card p-3 bg-white h-100 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-bar-chart-steps text-primary me-2"></i>Top 5 Defect Terbanyak (Pareto)
+                </h6>
+                <span class="badge bg-light text-secondary border">Fokus Kaizen Prioritas</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th>Kategori Defect</th>
+                            <th>Severity</th>
+                            <th class="text-center">Frekuensi</th>
+                            <th class="text-end">Total Cacat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in top_defects %}
+                        <tr>
+                            <td>
+                                <span class="badge rounded-pill {% if forloop.counter == 1 %}bg-danger{% elif forloop.counter == 2 %}bg-warning text-dark{% elif forloop.counter == 3 %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {{ forloop.counter }}
+                                </span>
+                            </td>
+                            <td>
+                                <strong>[{{ d.code }}]</strong> {{ d.name }}
+                                <div class="text-muted" style="font-size: 0.75rem;">Bagian: {{ d.get_section_display }}</div>
+                            </td>
+                            <td>
+                                {% if d.severity == 'CRITICAL' %}
+                                    <span class="badge bg-danger">Critical</span>
+                                {% elif d.severity == 'MAJOR' %}
+                                    <span class="badge bg-warning text-dark">Major</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Minor</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center text-muted">{{ d.incident_count }}x log</td>
+                            <td class="text-end fw-bold fs-6 text-dark">{{ d.total_qty }} pcs</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">Belum ada data defect pada filter ini.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Defect by Production Line -->
+    <div class="col-lg-6">
+        <div class="card stat-card p-3 bg-white h-100 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-diagram-3-fill text-info me-2"></i>Distribusi Defect per Lini Produksi
+                </h6>
+                <span class="badge bg-light text-secondary border">Lantai Pabrik</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Kode Lini</th>
+                            <th>Nama Lini & Seksi</th>
+                            <th class="text-center">Log</th>
+                            <th class="text-end">Total Cacat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for line in line_distribution %}
+                        <tr>
+                            <td class="fw-bold text-primary">{{ line.code }}</td>
+                            <td>
+                                {{ line.name }}
+                                <div class="text-muted" style="font-size: 0.75rem;">{{ line.get_section_display }}</div>
+                            </td>
+                            <td class="text-center text-muted">{{ line.log_count }}x</td>
+                            <td class="text-end fw-bold">{{ line.total_qty }} pcs</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-3">Belum ada data defect.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Defect Terbaru -->
+<div class="card stat-card p-3 bg-white shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-clock-history text-secondary me-2"></i>12 Catatan Defect Terakhir
+        </h6>
+        <div class="d-flex gap-2">
+            <a href="{% url 'tracking:log_create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> Catat Defect Baru
+            </a>
+            <a href="{% url 'tracking:log_list' %}" class="btn btn-outline-secondary btn-sm">
+                Lihat Semua Log
+            </a>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover table-striped align-middle mb-0 small">
+            <thead class="table-light">
+                <tr>
+                    <th>Waktu</th>
+                    <th>Lini</th>
+                    <th>Part Number</th>
+                    <th>Defect</th>
+                    <th>Shift</th>
+                    <th>Disposisi</th>
+                    <th class="text-end">Qty</th>
+                    <th>QC Inspector</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_logs %}
+                <tr>
+                    <td class="text-nowrap text-muted">{{ log.logged_at|date:"d M H:i" }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ log.line.code }}</span></td>
+                    <td>
+                        <span class="fw-semibold">{{ log.harness_part.part_number }}</span>
+                        <div class="text-muted" style="font-size: 0.75rem;">{{ log.harness_part.car_model }}</div>
+                    </td>
+                    <td>
+                        <div class="fw-medium text-dark">{{ log.defect_category.name }}</div>
+                        <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">{{ log.defect_category.get_severity_display }}</span>
+                    </td>
+                    <td>Shift {{ log.shift }}</td>
+                    <td>
+                        {% if log.action_taken == 'SCRAP' %}
+                            <span class="badge bg-danger">Scrap</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Rework</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-bold">{{ log.quantity }}</td>
+                    <td>{{ log.inspector_name }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-3">Belum ada riwayat defect.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
