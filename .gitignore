@@ -1,0 +1,17 @@
+# Python & Virtualenv
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# Database & Local volume
+*.sqlite3
+postgres_data/
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
