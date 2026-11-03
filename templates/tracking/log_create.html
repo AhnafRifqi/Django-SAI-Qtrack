@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Catat Defect Operator - Fast Entry{% endblock %}
+
+{% block content %}
+<div class="row g-4 justify-content-center">
+    <div class="col-lg-7">
+        <div class="card stat-card p-4 bg-white border-top border-4 border-primary shadow-sm">
+            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-lightning-charge-fill text-warning fs-3"></i>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">Fast-Entry Form Defect QC</h4>
+                        <span class="text-muted small">Pencatatan cepat temuan cacat wiring harness di stasiun kerja</span>
+                    </div>
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success px-2 py-1">
+                    <i class="bi bi-check-circle me-1"></i>Realtime QC
+                </span>
+            </div>
+
+            <form method="post" id="fastEntryForm" class="needs-validation" novalidate>
+                {% csrf_token %}
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.line.id_for_label }}" class="form-label fw-semibold small">
+                            Lini Produksi <span class="text-danger">*</span>
+                        </label>
+                        {{ form.line }}
+                        <div class="invalid-feedback">Pilih lini produksi tempat defect ditemukan.</div>
+                        {% if form.line.errors %}<div class="text-danger small mt-1">{{ form.line.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.harness_part.id_for_label }}" class="form-label fw-semibold small">
+                            Nomor Part Harness <span class="text-danger">*</span>
+                        </label>
+                        {{ form.harness_part }}
+                        <div class="invalid-feedback">Pilih nomor part harness.</div>
+                        {% if form.harness_part.errors %}<div class="text-danger small mt-1">{{ form.harness_part.errors }}</div>{% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.defect_category.id_for_label }}" class="form-label fw-semibold small">
+                        Jenis Defect (Standar Mutu Yazaki/SAI) <span class="text-danger">*</span>
+                    </label>
+                    {{ form.defect_category }}
+                    <div class="invalid-feedback">Pilih jenis cacat defect.</div>
+                    {% if form.defect_category.errors %}<div class="text-danger small mt-1">{{ form.defect_category.errors }}</div>{% endif %}
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label for="{{ form.shift.id_for_label }}" class="form-label fw-semibold small">
+                            Shift Kerja <span class="text-danger">*</span>
+                        </label>
+                        {{ form.shift }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.quantity.id_for_label }}" class="form-label fw-semibold small">
+                            Jumlah (Qty Pcs) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(-1)" title="Kurang 1">-</button>
+                            {{ form.quantity }}
+                            <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(1)" title="Tambah 1">+</button>
+                        </div>
+                        <div class="d-flex gap-1 mt-1">
+                            <button type="button" class="btn btn-xs btn-light border py-0 px-2 text-muted" style="font-size: 0.75rem;" onclick="setQty(1)">1</button>
+                            <button type="button" class="btn btn-xs btn-light border py-0 px-2 text-muted" style="font-size: 0.75rem;" onclick="setQty(5)">5</button>
+                            <button type="button" class="btn btn-xs btn-light border py-0 px-2 text-muted" style="font-size: 0.75rem;" onclick="setQty(10)">10</button>
+                        </div>
+                        <div class="invalid-feedback">Jumlah minimal 1 pcs.</div>
+                        {% if form.quantity.errors %}<div class="text-danger small mt-1">{{ form.quantity.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.action_taken.id_for_label }}" class="form-label fw-semibold small">
+                            Disposisi Cacat <span class="text-danger">*</span>
+                        </label>
+                        {{ form.action_taken }}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.inspector_name.id_for_label }}" class="form-label fw-semibold small">
+                        Nama Operator / QC Inspector <span class="text-danger">*</span>
+                    </label>
+                    {{ form.inspector_name }}
+                    <div class="form-text small text-muted" style="font-size: 0.75rem;">
+                        <i class="bi bi-info-circle me-1"></i>Nama disimpan otomatis di perangkat sehingga tidak perlu diketik ulang.
+                    </div>
+                    <div class="invalid-feedback">Isi nama pemeriksa / QC.</div>
+                    {% if form.inspector_name.errors %}<div class="text-danger small mt-1">{{ form.inspector_name.errors }}</div>{% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <label for="{{ form.notes.id_for_label }}" class="form-label fw-semibold small">
+                        Catatan Teknis / Nomor Cavity Pin (Opsional)
+                    </label>
+                    {{ form.notes }}
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                    <a href="{% url 'tracking:dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Dashboard
+                    </a>
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i> Simpan Catatan Defect
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidebar: 5 Data Terakhir yang Dimasukkan -->
+    <div class="col-lg-5">
+        <div class="card stat-card p-3 bg-white h-100 shadow-sm">
+            <h6 class="fw-bold mb-3 text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-clock-history text-secondary"></i> Input Terakhir Stasiun Ini
+            </h6>
+            <div class="list-group list-group-flush small">
+                {% for log in recent_entries %}
+                <div class="list-group-item px-0 py-2 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold text-primary">{{ log.line.code }}</span>
+                        {% if log.action_taken == 'SCRAP' %}
+                            <span class="badge bg-danger">Scrap ({{ log.quantity }} pcs)</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Rework ({{ log.quantity }} pcs)</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-dark fw-medium">{{ log.defect_category.name }}</div>
+                    <div class="text-muted" style="font-size: 0.75rem;">
+                        Part: <strong>{{ log.harness_part.part_number }}</strong> &bull; QC: {{ log.inspector_name }} &bull; {{ log.logged_at|timesince }} lalu
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted py-3 text-center">Belum ada input baru pada sesi ini.</p>
+                {% endfor %}
+            </div>
+            <div class="mt-auto pt-3">
+                <div class="p-3 bg-light rounded small border">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                    <strong>Aturan Kualitas Shopfloor:</strong> Apabila ditemukan cacat berulang (>3 pcs pada terminal crimp yang sama), segera hentikan mesin dan hubungi Line Leader.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Minim ketikan: Otomatis mengingat nama operator/QC terakhir dari browser/tablet
+document.addEventListener('DOMContentLoaded', function() {
+    const inspectorInput = document.getElementById('id_inspector_name');
+    if (inspectorInput) {
+        const savedName = localStorage.getItem('sai_qc_inspector_name');
+        if (savedName && !inspectorInput.value) {
+            inspectorInput.value = savedName;
+        }
+    }
+
+    const form = document.getElementById('fastEntryForm');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                if (inspectorInput && inspectorInput.value.trim()) {
+                    localStorage.setItem('sai_qc_inspector_name', inspectorInput.value.trim());
+                }
+            }
+            form.classList.add('was-validated');
+        });
+    }
+});
+
+// Quick Qty helpers (minim ketikan di layar sentuh operator)
+function adjustQty(delta) {
+    const qtyInput = document.getElementById('id_quantity');
+    if (qtyInput) {
+        let current = parseInt(qtyInput.value) || 1;
+        current = Math.max(1, current + delta);
+        qtyInput.value = current;
+    }
+}
+
+function setQty(val) {
+    const qtyInput = document.getElementById('id_quantity');
+    if (qtyInput) {
+        qtyInput.value = val;
+    }
+}
+</script>
+{% endblock %}
