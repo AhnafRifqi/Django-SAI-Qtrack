@@ -1,0 +1,42 @@
+{% extends "admin/change_list.html" %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+  /* Biarkan kontainer hasil tabel memiliki horizontal scrolling halus */
+  #changelist .results {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    border: 1px solid var(--hairline-color, #374151);
+  }
+
+  /* Rapikan ukuran cell agar proporsional dan tidak terpotong */
+  #result_list {
+    width: 100% !important;
+    min-width: 900px;
+  }
+
+  #result_list th, 
+  #result_list td {
+    vertical-align: middle !important;
+    padding: 8px 12px !important;
+  }
+
+  /* Kolom ID, Shift, Qty rata tengah */
+  #result_list th.column-id, 
+  #result_list td.field-id,
+  #result_list th.column-shift, 
+  #result_list td.field-shift,
+  #result_list th.column-quantity, 
+  #result_list td.field-quantity {
+    text-align: center;
+  }
+
+  /* Agar filter sidebar di kanan tidak menutupi tabel */
+  #changelist-filter {
+    flex-shrink: 0;
+  }
+</style>
+{% endblock %}
